@@ -44,6 +44,12 @@
 ![version1 answer](public/v1-answer.png)
 
 
+## 4. High 레벨 디자인
+![version1 high-level-design](public/v1-high-level-design.png)
+
+
+
+
 
 
 
