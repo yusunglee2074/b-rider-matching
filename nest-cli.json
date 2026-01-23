@@ -19,13 +19,22 @@
         "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
-    "rider-service": {
+    "location": {
       "type": "application",
-      "root": "apps/rider-service",
+      "root": "apps/location",
       "entryFile": "main",
-      "sourceRoot": "apps/rider-service/src",
+      "sourceRoot": "apps/location/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/rider-service/tsconfig.app.json"
+        "tsConfigPath": "apps/location/tsconfig.app.json"
+      }
+    },
+    "rider": {
+      "type": "application",
+      "root": "apps/rider",
+      "entryFile": "main",
+      "sourceRoot": "apps/rider/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/rider/tsconfig.app.json"
       }
     }
   }
