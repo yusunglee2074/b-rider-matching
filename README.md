@@ -2,9 +2,11 @@
 배민 라이더 배차 서비스 구현
 본 프로젝트는 배달의 민족과 같은 배달앱에 주문과 라이더를 매칭하는 배차 시스템입니다.
 
-**마이크로서비스 아키텍처(MSA)**를 기반으로 서비스 간 결합도를 낮추고, **Redis Geohashing**을 활용한 실시간 위치 추적 및 **분산 락(Distributed Lock)**을 통한 배차 정합성 보장을 핵심 기술 챌린지로 삼았습니다.
+- 강한 결합이 필요한 도메인(Rider, Delivery, Offer, Store)은 **Modular Monolith**로 통합
+- 독립적 스케일링이 필요한 서비스(Location, Notification)는 **별도 서비스**로 분리
+- 서비스 간 통신은 **HTTP, gRPC, BullMQ**를 목적에 맞게 혼용
 
-* **핵심 기술 스택:** Nest.js (Backend), Redis (Geospatial & Locking), PostgreSQL, AWS API Gateway.  
+* **핵심 기술 스택:** Nest.js (Backend), Redis (Geospatial & Locking), PostgreSQL, AWS API Gateway, AWS ECS, ECR, gRPC
 * **개발 목표:**  
 * 초당 수십만 건의 라이더 위치 업데이트 트래픽 처리.  
 * 중복 배차 방지 및 동시성 제어.
