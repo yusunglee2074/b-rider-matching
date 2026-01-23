@@ -19,6 +19,21 @@ B-Rider는 배민 라이더 배차 서비스로, **하이브리드 아키텍처*
 
 ---
 
+## Service-Specific Documentation
+
+각 서비스별 상세 가이드는 해당 디렉토리의 CLAUDE.md를 참조하세요:
+
+| Service | Path | 책임 |
+|---------|------|------|
+| API Gateway | `apps/api-gateway/CLAUDE.md` | JWT 인증, Rate Limiting, 프록시 |
+| Core Service | `apps/core-service/CLAUDE.md` | Rider, Delivery, Offer, Store 모듈 |
+| Location Service | `apps/location-service/CLAUDE.md` | 위치 업데이트, 근처 라이더 검색 |
+| Notification Worker | `apps/notification-worker/CLAUDE.md` | 푸시 알림, SMS 발송 |
+
+**병렬 개발 시**: 각 서비스 디렉토리에서 Claude Code를 실행하면 해당 서비스의 CLAUDE.md가 우선 적용됩니다.
+
+---
+
 ## Architecture
 
 ### Service Overview
@@ -52,101 +67,66 @@ B-Rider는 배민 라이더 배차 서비스로, **하이브리드 아키텍처*
 | Rider App → Location | HTTP | 위치 업데이트 (단방향) |
 | Core Service → Notification | **BullMQ** | 비동기, 재시도/백오프 내장, Redis 통합 |
 
-### Service Separation Rationale
+### Port Assignments
 
-| Service | Type | 분리 이유 |
-|---------|------|----------|
-| Location | Microservice | 40k TPS, Redis 전용, gRPC |
-| Notification | Worker | 비동기, 외부 API, 실패 격리, BullMQ |
-| Rider/Delivery/Offer/Store | Modular Monolith | 강한 결합, 트랜잭션 공유 |
+| Service | HTTP Port | gRPC Port |
+|---------|-----------|-----------|
+| API Gateway | 3000 | - |
+| Core Service | 3001 | - |
+| Location Service | 3003 | 5003 |
+| Notification Worker | - | - |
 
 ---
 
 ## Development Commands
 
+### Quick Start (Development)
+
+```bash
+# 전체 서비스 실행 (hot reload)
+npm run dev
+
+# 상태 확인
+pm2 status
+
+# 로그 확인
+npm run dev:logs
+
+# 종료
+npm run dev:stop
+```
+
 ### Building
 
 ```bash
-# Build all services
-npm run build
-
-# Build specific service
-nest build api-gateway
-nest build core-service
-nest build location-service
-nest build notification-worker
-```
-
-### Running Services
-
-#### Docker Compose (Recommended for Local Dev)
-
-```bash
-# Start all infrastructure + services
-docker-compose -f infrastructure/docker/docker-compose.yml up -d
-
-# View logs
-docker-compose logs -f api-gateway
-docker-compose logs -f core-service
-```
-
-#### PM2 Process Management
-
-```bash
-# Start all services
-npm run pm2:start
-
-# View status
-pm2 status
-
-# View logs
-pm2 logs api-gateway --lines 100 --nostream
-pm2 logs core-service --lines 100 --nostream
-pm2 logs location-service --lines 100 --nostream
-
-# Restart
-pm2 restart all
-```
-
-#### Nest CLI (Single Service Development)
-
-```bash
-nest start api-gateway --watch
-nest start core-service --watch
-nest start location-service --watch
-```
-
-### Code Quality
-
-```bash
-npm run lint                 # Run ESLint
-npm run format              # Format with Prettier
-npm run lint:fix            # Fix linting issues
+npm run build:all                    # 전체 빌드
+nest build api-gateway               # 개별 빌드
 ```
 
 ### Testing
 
 ```bash
-npm test                    # Run all unit tests
-npm run test:watch         # Watch mode
-npm run test:cov           # Coverage report
-npm run test:e2e           # E2E tests
+npm test                             # 전체 테스트
+npm run test -- apps/core-service    # 서비스별 테스트
+npm run test:e2e                     # E2E 테스트
+```
+
+### Code Quality
+
+```bash
+npm run lint
+npm run format
+```
+
+### Production (PM2)
+
+```bash
+npm run build:all && npm run pm2:start
 ```
 
 ---
 
-## Service Configuration
-
-### Port Assignments
-
-| Service | HTTP Port | gRPC Port | Description |
-|---------|-----------|-----------|-------------|
-| API Gateway | 3000 | - | JWT 인증, Rate Limiting, Routing |
-| Core Service | 3001 | - | Rider, Delivery, Offer, Store 모듈 |
-| Location Service | 3003 | 5003 | Redis Geohash, 위치 검색 |
-| Notification Worker | - | - | BullMQ Consumer, Push 알림 |
-
-### Environment Variables
+## Environment Variables
 
 ```bash
 # Database
@@ -162,7 +142,7 @@ LOCATION_GRPC_URL=localhost:5003
 JWT_SECRET=your-secret-key
 JWT_EXPIRATION=3600
 
-# Service URLs (for HTTP communication)
+# Service URLs
 CORE_SERVICE_URL=http://localhost:3001
 LOCATION_SERVICE_URL=http://localhost:3003
 ```
@@ -174,256 +154,31 @@ LOCATION_SERVICE_URL=http://localhost:3003
 ```
 b-rider/
 ├── apps/
-│   ├── api-gateway/              # HTTP REST API
-│   │   ├── src/
-│   │   │   ├── main.ts
-│   │   │   ├── app.module.ts
-│   │   │   ├── auth/             # JWT 인증
-│   │   │   └── proxy/            # Core Service 프록시
-│   │   └── Dockerfile
-│   │
-│   ├── core-service/             # Modular Monolith
-│   │   ├── src/
-│   │   │   ├── main.ts
-│   │   │   ├── app.module.ts
-│   │   │   ├── rider/            # Rider Module
-│   │   │   ├── delivery/         # Delivery Module
-│   │   │   ├── offer/            # Offer Module (분산 락)
-│   │   │   ├── store/            # Store Module
-│   │   │   └── clients/
-│   │   │       ├── location.grpc-client.ts
-│   │   │       └── notification.queue-producer.ts
-│   │   └── Dockerfile
-│   │
-│   ├── location-service/         # gRPC + HTTP Hybrid
-│   │   ├── src/
-│   │   │   ├── main.ts           # Hybrid (HTTP + gRPC)
-│   │   │   ├── location.module.ts
-│   │   │   ├── location.controller.ts      # HTTP endpoints
-│   │   │   ├── location.grpc.controller.ts # gRPC handlers
-│   │   │   └── location.service.ts         # Redis Geohash
-│   │   ├── proto/
-│   │   │   └── location.proto
-│   │   └── Dockerfile
-│   │
-│   └── notification-worker/      # BullMQ Consumer
-│       ├── src/
-│       │   ├── main.ts
-│       │   ├── notification.module.ts
-│       │   └── processors/
-│       │       ├── push.processor.ts
-│       │       └── sms.processor.ts
-│       └── Dockerfile
+│   ├── api-gateway/              # HTTP REST API (CLAUDE.md 포함)
+│   ├── core-service/             # Modular Monolith (CLAUDE.md 포함)
+│   ├── location-service/         # gRPC + HTTP (CLAUDE.md 포함)
+│   └── notification-worker/      # BullMQ Consumer (CLAUDE.md 포함)
 │
 ├── libs/
-│   ├── common/                   # Shared utilities
-│   │   ├── dto/
-│   │   ├── decorators/
-│   │   ├── filters/
-│   │   └── interceptors/
+│   ├── common/                   # 공유 유틸리티, DTO, 데코레이터
 │   ├── database/                 # TypeORM entities, migrations
-│   └── proto/                    # Shared Proto files
-│       └── location.proto
+│   └── proto/                    # 공유 Proto 파일 (원본)
 │
 ├── infrastructure/
 │   ├── terraform/                # AWS IaC
-│   │   ├── ecs/
-│   │   ├── rds/
-│   │   ├── elasticache/
-│   │   └── msk/
 │   └── docker/
-│       └── docker-compose.yml    # Local development
+│       └── docker-compose.yml
 │
 ├── dev/
-│   ├── active/                   # Active task documentation
-│   └── done/                     # Completed task documentation
+│   ├── active/                   # 진행 중인 태스크 문서
+│   └── done/                     # 완료된 태스크 문서
 │
 ├── docs/
 │   └── adr/                      # Architecture Decision Records
 │
-├── ecosystem.config.js           # PM2 configuration
-├── nest-cli.json
+├── ecosystem.config.js           # PM2 production
+├── ecosystem.dev.config.js       # PM2 development (hot reload)
 └── package.json
-```
-
----
-
-## Key Implementation Patterns
-
-### 1. Location Service (gRPC + HTTP Hybrid)
-
-```typescript
-// apps/location-service/src/main.ts
-async function bootstrap() {
-  const app = await NestFactory.create(LocationModule);
-
-  // gRPC 서버 추가
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.GRPC,
-    options: {
-      package: 'location',
-      protoPath: join(__dirname, '../proto/location.proto'),
-      url: '0.0.0.0:5003',
-    },
-  });
-
-  await app.startAllMicroservices();
-  await app.listen(3003);
-}
-```
-
-### 2. gRPC Client (Core Service)
-
-```typescript
-// apps/core-service/src/clients/location.grpc-client.ts
-@Injectable()
-export class LocationGrpcClient implements OnModuleInit {
-  private locationService: LocationServiceClient;
-
-  constructor(@Inject('LOCATION_PACKAGE') private client: ClientGrpc) {}
-
-  onModuleInit() {
-    this.locationService = this.client.getService('LocationService');
-  }
-
-  getNearbyRiders(lat: number, lng: number, radiusKm: number) {
-    return this.locationService.getNearbyRiders({ lat, lng, radiusKm });
-  }
-}
-```
-
-### 3. BullMQ Producer/Consumer
-
-```typescript
-// Producer (Core Service)
-@Injectable()
-export class OfferService {
-  constructor(@InjectQueue('notification') private notificationQueue: Queue) {}
-
-  async assignOffer(offerId: string, riderId: string) {
-    // ... business logic
-    await this.notificationQueue.add('push', {
-      type: 'OFFER_ASSIGNED',
-      riderId,
-      offerId,
-    }, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 1000 },
-    });
-  }
-}
-
-// Consumer (Notification Worker)
-@Processor('notification')
-export class PushProcessor {
-  @Process('push')
-  async handlePush(job: Job<NotificationJobData>) {
-    await this.fcmService.send(job.data.riderId, { title: '새 배차' });
-  }
-}
-```
-
-### 4. Distributed Lock (Redis)
-
-```typescript
-// libs/common/src/services/redis-lock.service.ts
-@Injectable()
-export class RedisLockService {
-  async acquire(key: string, ttlMs: number = 10000): Promise<Lock | null> {
-    const token = randomUUID();
-    const result = await this.redis.set(`lock:${key}`, token, 'PX', ttlMs, 'NX');
-
-    if (result !== 'OK') return null;
-
-    return {
-      release: async () => {
-        // Lua script로 원자적 삭제
-        await this.redis.eval(luaScript, 1, `lock:${key}`, token);
-      }
-    };
-  }
-}
-```
-
----
-
-## Debugging Guide
-
-### Common Issues
-
-#### 1. Service Won't Start
-
-```bash
-# Check port availability
-lsof -i :3000
-lsof -i :3001
-lsof -i :3003
-
-# Check Docker containers
-docker-compose ps
-
-# Check PM2 logs
-pm2 logs <service-name> --lines 200 --err
-```
-
-#### 2. gRPC Connection Issues
-
-```bash
-# Test gRPC service
-grpcurl -plaintext localhost:5003 list
-grpcurl -plaintext localhost:5003 location.LocationService/GetNearbyRiders
-
-# Check proto file sync
-diff libs/proto/location.proto apps/location-service/proto/location.proto
-```
-
-#### 3. BullMQ Issues
-
-```bash
-# Check Redis connection
-redis-cli ping
-
-# Check queue status (using Bull Board or CLI)
-# Install: npm install -g bull-cli
-bull-cli --redis redis://localhost:6379
-
-# Check failed jobs
-redis-cli LRANGE bull:notification:failed 0 -1
-
-# Check waiting jobs
-redis-cli LLEN bull:notification:wait
-```
-
-#### 4. Redis/Distributed Lock Issues
-
-```bash
-# Check Redis
-redis-cli ping
-
-# Check locks
-redis-cli GET "lock:offer:<offer_id>"
-redis-cli TTL "lock:offer:<offer_id>"
-
-# Clear stuck lock (dev only)
-redis-cli DEL "lock:offer:<offer_id>"
-
-# Test Geospatial
-redis-cli GEOADD riders:locations 127.0 37.5 "rider_123"
-redis-cli GEORADIUS riders:locations 127.0 37.5 5 km
-```
-
-### AI Agent Log Access
-
-```bash
-# PM2 logs (no streaming)
-pm2 logs <service-name> --lines 100 --nostream
-
-# Direct log file access
-cat ~/.pm2/logs/api-gateway-out.log | tail -100
-cat ~/.pm2/logs/core-service-error.log | tail -50
-
-# Docker logs
-docker-compose logs --tail=100 api-gateway
 ```
 
 ---
@@ -466,26 +221,39 @@ Rider App → API Gateway → Core Service (Offer Module)
 
 ---
 
-## Task Management (Dev Docs)
+## Debugging Guide
 
-대규모 기능 개발 시 컨텍스트 유지를 위한 문서화 시스템입니다.
-
-### Starting Large Tasks
+### AI Agent Log Access
 
 ```bash
-mkdir -p dev/active/[task-name]/
+# PM2 dev mode logs (recommended)
+pm2 logs api-gateway-dev --lines 100 --nostream
+pm2 logs core-service-dev --lines 100 --nostream
+pm2 logs location-service-dev --lines 100 --nostream
+pm2 logs notification-worker-dev --lines 100 --nostream
+
+# Error logs only
+pm2 logs <service>-dev --lines 100 --nostream --err
+
+# Direct log file access
+cat ~/.pm2/logs/<service>-dev-out.log | tail -100
 ```
 
-Create:
-- `[task-name]-plan.md` - 승인된 계획
-- `[task-name]-context.md` - 핵심 파일, 결정 사항
-- `[task-name]-tasks.md` - 작업 체크리스트
+### Common Issues
 
-### Continuing Tasks
+```bash
+# Port 충돌 확인
+lsof -i :3000 && lsof -i :3001 && lsof -i :3003
 
-- `dev/active/` 디렉토리에서 기존 태스크 확인
-- 작업 전 세 파일 모두 읽기
-- "Last Updated" 타임스탬프 갱신
+# Redis 연결 확인
+redis-cli ping
+
+# gRPC 서비스 확인
+grpcurl -plaintext localhost:5003 list
+
+# BullMQ 큐 상태
+redis-cli LLEN bull:notification:wait
+```
 
 ---
 
@@ -511,6 +279,29 @@ Create:
    - 배차 매칭: 강한 일관성
    - 기타 기능: 가용성 우선
    - Stateless: 상태는 Redis/PostgreSQL에 저장
+
+---
+
+## Task Management (Dev Docs)
+
+대규모 기능 개발 시 컨텍스트 유지를 위한 문서화 시스템입니다.
+
+### Starting Large Tasks
+
+```bash
+mkdir -p dev/active/[task-name]/
+```
+
+Create:
+- `[task-name]-plan.md` - 승인된 계획
+- `[task-name]-context.md` - 핵심 파일, 결정 사항
+- `[task-name]-tasks.md` - 작업 체크리스트
+
+### Continuing Tasks
+
+- `dev/active/` 디렉토리에서 기존 태스크 확인
+- 작업 전 세 파일 모두 읽기
+- "Last Updated" 타임스탬프 갱신
 
 ---
 
