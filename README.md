@@ -72,12 +72,124 @@
   - etc...
 
 ## 3. 핵심 API
-![version1 answer](public/v1-answer.png)
+### 핵심 API 명세 요약
+
+**가게(Store)**
+- `PATCH /stores/deliveries/{delivery_id}`
+  - Body: `{ estimate_mins_cook_done }`
+
+**라이더(Rider)**
+- `POST /rider/start-work` (Header: JWT token)
+- `PATCH /locations` -> 200
+  - Body: `{ lat, long }`
+- `PATCH /delivery-offers/{offer_id}/accept` -> 200
+  - Body: `{ accept: true or false }`
+- `GET /delivery-offers` -> Offer[]
+- `PATCH /delivery-offers/{offer_id}` -> Offer
+  - Body: `{ status: "픽업완료" | "배달완료" }`
+
+**어드민(Admin)**
+- `PATCH /admin/delivery-offers/{offer_id}/cancel`
+- `PATCH /admin/delivery-offers/{offer_id}/assign`
+  - Body: `{ rider_id }`
 
 
 ## 4. High 레벨 디자인
 ![version2 high-level-design](public/v2-high-level-design.png)
+```mermaid
+flowchart LR
+    %% 스타일 정의
+    classDef client fill:#fff,stroke:#333,stroke-width:2px,rx:10,ry:10
+    classDef gateway fill:#fff,stroke:#333,stroke-width:2px,rx:10,ry:10
+    classDef service fill:#fff,stroke:#333,stroke-width:2px,rx:10,ry:10
+    classDef database fill:#fff,stroke:#333,stroke-width:2px,shape:cylinder
+    classDef external fill:#fff,stroke:#333,stroke-width:2px,rx:10,ry:10
 
+    %% 1. 사용자/클라이언트 (좌측)
+    subgraph Clients [Clients]
+        direction TB
+        Rider[라이더]:::client
+        Customer[고객]:::client
+        Store[스토어]:::client
+        Admin[어드민]:::client
+    end
+
+    %% 2. 외부 알림 서비스 (하단)
+    ExtNotif[외부 알림 서비스<br/>FCM, APN, 문자...]:::external
+
+    %% 3. AWS API 게이트웨이
+    AWS_Gateway[AWS<br/>API 게이트웨이<br/>로드밸런싱<br/>SSL 터미네이션<br/>Authentication]:::gateway
+
+    %% 4. Nest.js 게이트웨이
+    Nest_Gateway[Nest.js 게이트웨이<br/>Authorization<br/>Data aggregation]:::gateway
+
+    %% 5. 마이크로서비스 (중앙)
+    subgraph Services [Microservices]
+        direction TB
+        DeliverySvc[배달경로 Delivery 서비스]:::service
+        RiderSvc[라이더 서비스]:::service
+        LocSvc[위치 서비스]:::service
+        OfferSvc[배달 오퍼 매칭 서비스]:::service
+        StoreSvc[스토어 서비스]:::service
+        AdminSvc[어드민 서비스]:::service
+        NotifSvc[알림 서비스]:::service
+    end
+
+    %% 6. Mock 서비스 (상단)
+    MockOrder[Mock 주문 서비스]:::external
+    MockRoute[Mock 외부 길찾기 서비스]:::external
+
+    %% 7. 데이터베이스 (우측)
+    Postgres[(PostgreSQL)]:::database
+    Redis[(Redis)]:::database
+    LocDB[(Location DB<br/>Redis cluster)]:::database
+
+    %% 8. 주석 (우측 하단)
+    NoteRight[동시 20만명 라이더<br/>5초마다 업데이트<br/>TPS= 200k / 5 = 40k]:::text
+    LocDB -.- NoteRight
+
+    %% --- 연결 관계 (Relationships) ---
+
+    %% 클라이언트 <-> AWS 게이트웨이
+    Rider <--> AWS_Gateway
+    Customer <--> AWS_Gateway
+    Store <--> AWS_Gateway
+    Admin <--> AWS_Gateway
+
+    %% AWS 게이트웨이 <-> Nest 게이트웨이
+    AWS_Gateway <--> Nest_Gateway
+
+    %% Nest 게이트웨이 <-> 서비스들
+    Nest_Gateway -->|자동 매칭 수락/거절<br/>일반 배달경로 조회| DeliverySvc
+    Nest_Gateway <-->|출근/퇴근| RiderSvc
+    Nest_Gateway -->|위치 업데이트| LocSvc
+    Nest_Gateway -->|조리완료예정 업데이트| StoreSvc
+    Nest_Gateway -->|배차 수동 수정| AdminSvc
+    
+    %% Mock 서비스 연결
+    MockOrder --> DeliverySvc
+    MockRoute <--> DeliverySvc
+
+    %% 서비스 간 연결 및 DB 연결
+    DeliverySvc --> Postgres
+    DeliverySvc -->|경로 or 경로묶음 + 라이더 매칭 요청| OfferSvc
+    
+    RiderSvc --> Postgres
+
+    LocSvc -->|SET rider_id, true expire 10s, 매칭 수락 여부<br/>OR dynamodb for ttl driver_lock collection| Redis
+    LocSvc --> LocDB
+
+    OfferSvc --> Redis
+    OfferSvc -->|라이더 위치 조회| LocDB
+    OfferSvc -->|자동매칭 알림| NotifSvc
+
+    %% 알림 서비스 -> 외부 알림 -> 클라이언트 (피드백 루프)
+    NotifSvc --> ExtNotif
+    ExtNotif --> Rider
+    ExtNotif --> Customer
+    ExtNotif --> Store
+    ExtNotif --> Admin
+```
 ## 5. low 레벨 디자인
 ### location DB 선택
 | **비교 항목** | **1. RDBMS (Naive)**                           | **2. PostGIS (Spatial DB)**                     | **3. Redis (In-Memory)**                           |
