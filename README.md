@@ -95,7 +95,6 @@
 
 
 ## 4. High 레벨 디자인
-![version2 high-level-design](public/v2-high-level-design.png)
 ```mermaid
 flowchart LR
     %% 스타일 정의
@@ -227,3 +226,8 @@ flowchart LR
 ### 수평 확장 전략
 * **Stateless Architecture:** 각 서비스들은 상태를 로컬 메모리에 저장하지 않고 Redis와 DB로 위임하여, 트래픽 급증 시 즉각적인 오토 스케일링이 가능하도록 설계
 * **Event-Driven Communication:** 서비스 간 통신은 Kafka를 통해 비동기로 처리하여, 주문 폭주 시에도 시스템 전체가 셧다운되지 않고 큐(Queue)에 쌓아두어 처리량을 조절
+
+
+## 기타 다이어그램
+
+![version2 high-level-design](public/v2-high-level-design.png)
