@@ -19,22 +19,49 @@
         "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
       }
     },
-    "location": {
+    "core-service": {
       "type": "application",
-      "root": "apps/location",
+      "root": "apps/core-service",
       "entryFile": "main",
-      "sourceRoot": "apps/location/src",
+      "sourceRoot": "apps/core-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/location/tsconfig.app.json"
+        "tsConfigPath": "apps/core-service/tsconfig.app.json"
       }
     },
-    "rider": {
+    "location-service": {
       "type": "application",
-      "root": "apps/rider",
+      "root": "apps/location-service",
       "entryFile": "main",
-      "sourceRoot": "apps/rider/src",
+      "sourceRoot": "apps/location-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/rider/tsconfig.app.json"
+        "tsConfigPath": "apps/location-service/tsconfig.app.json"
+      }
+    },
+    "notification-worker": {
+      "type": "application",
+      "root": "apps/notification-worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/notification-worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notification-worker/tsconfig.app.json"
+      }
+    },
+    "common": {
+      "type": "library",
+      "root": "libs/common",
+      "entryFile": "index",
+      "sourceRoot": "libs/common/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/common/tsconfig.lib.json"
+      }
+    },
+    "database": {
+      "type": "library",
+      "root": "libs/database",
+      "entryFile": "index",
+      "sourceRoot": "libs/database/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/database/tsconfig.lib.json"
       }
     }
   }
