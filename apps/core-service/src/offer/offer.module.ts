@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Offer } from '@app/database';
+import { RedisLockService } from '@app/common';
 import { OfferController } from './offer.controller';
 import { OfferService } from './offer.service';
 import { RiderModule } from '../rider/rider.module';
@@ -15,7 +16,7 @@ import { NotificationQueueProducer } from '../clients/notification.queue-produce
     DeliveryModule,
   ],
   controllers: [OfferController],
-  providers: [OfferService, LocationGrpcClient, NotificationQueueProducer],
+  providers: [OfferService, RedisLockService, LocationGrpcClient, NotificationQueueProducer],
   exports: [OfferService],
 })
 export class OfferModule {}
