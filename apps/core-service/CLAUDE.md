@@ -4,10 +4,11 @@
 
 핵심 비즈니스 로직을 담당하는 Modular Monolith입니다.
 
-- **Rider Module**: 라이더 등록, 상태 관리
-- **Delivery Module**: 배달 생성, 상태 관리
-- **Offer Module**: 배차 매칭, 수락/거절 (분산 락)
+- **Rider Module**: 라이더 등록, 상태 관리, Redis 상태 동기화
+- **Delivery Module**: 배달 생성, 상태 관리, 라이더 취소 처리
+- **Offer Module**: 배차 매칭, 수락/거절, 자동 배차, 타임아웃 재배차 (분산 락)
 - **Store Module**: 가맹점 관리
+- **Admin Module**: 수동 배차, 재할당, 대시보드
 
 ## 포트
 
@@ -25,26 +26,30 @@ apps/core-service/
 │   ├── rider/              # 라이더 모듈
 │   │   ├── rider.module.ts
 │   │   ├── rider.controller.ts
-│   │   ├── rider.service.ts
-│   │   └── entities/
+│   │   └── rider.service.ts
 │   ├── delivery/           # 배달 모듈
 │   │   ├── delivery.module.ts
 │   │   ├── delivery.controller.ts
-│   │   ├── delivery.service.ts
-│   │   └── entities/
+│   │   └── delivery.service.ts
 │   ├── offer/              # 배차 모듈 (분산 락 사용)
 │   │   ├── offer.module.ts
 │   │   ├── offer.controller.ts
 │   │   ├── offer.service.ts
-│   │   └── entities/
+│   │   ├── auto-dispatch.service.ts    # 자동 배차
+│   │   └── offer-timeout.processor.ts  # 타임아웃 처리
 │   ├── store/              # 가맹점 모듈
 │   │   ├── store.module.ts
 │   │   ├── store.controller.ts
-│   │   ├── store.service.ts
-│   │   └── entities/
+│   │   └── store.service.ts
+│   ├── admin/              # 어드민 모듈
+│   │   ├── admin.module.ts
+│   │   ├── admin.controller.ts
+│   │   ├── admin.service.ts
+│   │   └── guards/admin.guard.ts
 │   └── clients/
-│       ├── location.grpc-client.ts      # Location Service gRPC 클라이언트
-│       └── notification.queue-producer.ts # BullMQ Producer
+│       ├── location.grpc-client.ts       # Location Service gRPC 클라이언트
+│       ├── notification.queue-producer.ts # 알림 BullMQ Producer
+│       └── offer.queue-producer.ts        # 타임아웃 BullMQ Producer
 └── test/
 ```
 
