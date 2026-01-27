@@ -24,7 +24,7 @@ export class Store {
   longitude: number;
 
   @Column({ nullable: true })
-  phone: string | null;
+  phone: string;
 
   @Column({ default: true })
   isActive: boolean;

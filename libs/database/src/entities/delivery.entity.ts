@@ -55,10 +55,10 @@ export class Delivery {
   dropoffLongitude: number;
 
   @Column({ nullable: true })
-  customerPhone: string | null;
+  customerPhone: string;
 
   @Column({ nullable: true })
-  note: string | null;
+  note: string;
 
   @CreateDateColumn()
   createdAt: Date;

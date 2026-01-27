@@ -47,7 +47,7 @@ export class Offer {
   expiresAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  respondedAt: Date | null;
+  respondedAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;

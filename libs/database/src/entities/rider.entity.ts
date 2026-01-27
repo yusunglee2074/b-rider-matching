@@ -31,10 +31,10 @@ export class Rider {
   status: RiderStatus;
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  latitude: number | null;
+  latitude: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
-  longitude: number | null;
+  longitude: number;
 
   @CreateDateColumn()
   createdAt: Date;
