@@ -3,7 +3,8 @@ import { GrpcMethod } from '@nestjs/microservices';
 import { LocationService } from './location.service';
 
 interface UpdateRiderLocationRequest {
-  rider_id: string;
+  rider_id?: string;
+  riderId?: string;
   latitude: number;
   longitude: number;
 }
@@ -11,7 +12,8 @@ interface UpdateRiderLocationRequest {
 interface GetNearbyRidersRequest {
   latitude: number;
   longitude: number;
-  radius_km: number;
+  radius_km?: number;
+  radiusKm?: number;
   limit: number;
 }
 
@@ -21,8 +23,9 @@ export class LocationGrpcController {
 
   @GrpcMethod('LocationService', 'UpdateRiderLocation')
   async updateRiderLocation(data: UpdateRiderLocationRequest) {
+    const riderId = data.rider_id || data.riderId || '';
     const success = await this.locationService.updateLocation(
-      data.rider_id,
+      riderId,
       data.latitude,
       data.longitude,
     );
@@ -31,10 +34,11 @@ export class LocationGrpcController {
 
   @GrpcMethod('LocationService', 'GetNearbyRiders')
   async getNearbyRiders(data: GetNearbyRidersRequest) {
+    const radiusKm = data.radius_km || data.radiusKm || 5;
     const riders = await this.locationService.getNearbyRiders(
       data.latitude,
       data.longitude,
-      data.radius_km,
+      radiusKm,
       data.limit || 10,
     );
 

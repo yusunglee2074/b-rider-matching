@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from '@app/database';
 import { RedisLockService } from '@app/common';
@@ -7,6 +7,7 @@ import { RiderModule } from './rider/rider.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { OfferModule } from './offer/offer.module';
 import { AdminModule } from './admin/admin.module';
+import { UserContextMiddleware } from './common/user-context.middleware';
 
 @Module({
   imports: [
@@ -25,4 +26,8 @@ import { AdminModule } from './admin/admin.module';
   providers: [RedisLockService],
   exports: [RedisLockService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(UserContextMiddleware).forRoutes('*');
+  }
+}

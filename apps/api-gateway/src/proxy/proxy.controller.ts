@@ -17,14 +17,15 @@ export class ProxyController {
 
   @All('*path')
   async proxy(
-    @Param('path') path: string,
+    @Param('path') path: string | string[],
     @Req() req: express.Request,
     @Res() res: express.Response,
     @CurrentUser() user: JwtPayload,
   ) {
+    const pathString = Array.isArray(path) ? path.join('/') : path;
     const result = await this.proxyService.forward(
       req.method as Method,
-      `/${path}`,
+      `/${pathString}`,
       user,
       req.body,
       req.headers as Record<string, string>,

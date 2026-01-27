@@ -15,7 +15,7 @@ interface RiderLocation {
 interface GetNearbyRidersRequest {
   latitude: number;
   longitude: number;
-  radiusKm: number;
+  radius_km: number;
   limit: number;
 }
 
@@ -68,7 +68,7 @@ export class LocationGrpcClient implements OnModuleInit {
         this.locationService.getNearbyRiders({
           latitude,
           longitude,
-          radiusKm,
+          radius_km: radiusKm,
           limit,
         }).pipe(
           timeout(5000),

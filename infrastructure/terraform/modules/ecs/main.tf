@@ -137,6 +137,14 @@ resource "aws_security_group" "ecs" {
   }
 
   ingress {
+    description = "Internal service communication"
+    from_port   = 3000
+    to_port     = 3003
+    protocol    = "tcp"
+    self        = true
+  }
+
+  ingress {
     description = "gRPC internal"
     from_port   = 5003
     to_port     = 5003

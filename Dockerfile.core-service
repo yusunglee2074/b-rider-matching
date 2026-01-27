@@ -25,6 +25,9 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built files
 COPY --from=builder /app/dist/apps/core-service ./dist
 
+# Copy proto files for gRPC
+COPY --from=builder /app/libs/proto/src ./libs/proto/src
+
 ENV NODE_ENV=production
 ENV PORT=3001
 
