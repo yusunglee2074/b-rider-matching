@@ -38,7 +38,11 @@
     "dev:stop": "pm2 stop ecosystem.dev.config.js",
     "dev:restart": "pm2 restart ecosystem.dev.config.js",
     "dev:delete": "pm2 delete ecosystem.dev.config.js",
-    "dev:logs": "pm2 logs"
+    "dev:logs": "pm2 logs",
+    "typeorm": "typeorm-ts-node-commonjs",
+    "migration:generate": "npm run typeorm -- migration:generate -d libs/database/src/data-source.ts",
+    "migration:run": "npm run typeorm -- migration:run -d libs/database/src/data-source.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d libs/database/src/data-source.ts"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",

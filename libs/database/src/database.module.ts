@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { InitialSchema1706284800000 } from './migrations/1706284800000-InitialSchema';
 
 @Module({
   imports: [
@@ -13,6 +14,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         autoLoadEntities: true,
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         logging: configService.get<string>('NODE_ENV') === 'development',
+        migrations: [InitialSchema1706284800000],
+        migrationsRun: configService.get<string>('NODE_ENV') === 'production',
       }),
     }),
   ],
