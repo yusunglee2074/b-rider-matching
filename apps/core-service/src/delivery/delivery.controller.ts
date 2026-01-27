@@ -49,4 +49,12 @@ export class DeliveryController {
   setCancelled(@Param('id', ParseUUIDPipe) id: string) {
     return this.deliveryService.setCancelled(id);
   }
+
+  @Patch(':id/cancel-by-rider')
+  cancelByRider(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('riderId', ParseUUIDPipe) riderId: string,
+  ) {
+    return this.deliveryService.cancelByRider(id, riderId);
+  }
 }
