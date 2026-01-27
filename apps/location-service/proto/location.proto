@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package location;
+
+service LocationService {
+  rpc GetNearbyRiders (GetNearbyRidersRequest) returns (GetNearbyRidersResponse);
+  rpc UpdateRiderLocation (UpdateRiderLocationRequest) returns (UpdateRiderLocationResponse);
+}
+
+message GetNearbyRidersRequest {
+  double latitude = 1;
+  double longitude = 2;
+  double radius_km = 3;
+  int32 limit = 4;
+}
+
+message RiderLocation {
+  string rider_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  double distance_km = 4;
+}
+
+message GetNearbyRidersResponse {
+  repeated RiderLocation riders = 1;
+}
+
+message UpdateRiderLocationRequest {
+  string rider_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+}
+
+message UpdateRiderLocationResponse {
+  bool success = 1;
+}
