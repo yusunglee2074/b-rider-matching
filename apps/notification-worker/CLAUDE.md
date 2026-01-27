@@ -72,16 +72,15 @@ npm run test -- apps/notification-worker
 
 ```typescript
 @Processor('notification')
-export class PushProcessor {
-  @Process('push')
-  async handlePush(job: Job<NotificationJobData>) {
-    const { riderId, type, payload } = job.data;
+export class PushProcessor extends WorkerHost {
+  async process(job: Job<NotificationJobData>): Promise<void> {
+    if (job.name !== 'send') return;
+
+    const { riderId, storeId, title, body, type } = job.data;
+    const targetId = riderId || storeId;
 
     // FCM 발송
-    await this.fcmService.send(riderId, {
-      title: this.getTitle(type),
-      body: this.getBody(type, payload),
-    });
+    await this.sendFcm(targetId, { title, body });
   }
 }
 ```
@@ -90,9 +89,14 @@ export class PushProcessor {
 
 ```typescript
 interface NotificationJobData {
-  type: 'OFFER_ASSIGNED' | 'OFFER_TIMEOUT' | 'DELIVERY_COMPLETED';
-  riderId: string;
-  payload: Record<string, any>;
+  type: 'OFFER_CREATED' | 'OFFER_ACCEPTED' | 'OFFER_REJECTED' | 'OFFER_EXPIRED' | 'DELIVERY_UPDATE';
+  riderId?: string;
+  storeId?: string;
+  deliveryId?: string;
+  offerId?: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
 }
 ```
 
@@ -100,7 +104,7 @@ interface NotificationJobData {
 
 Core Service에서 Job 추가 시 설정:
 ```typescript
-await this.notificationQueue.add('push', data, {
+await this.notificationQueue.add('send', data, {
   attempts: 3,
   backoff: { type: 'exponential', delay: 1000 },
 });
