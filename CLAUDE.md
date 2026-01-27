@@ -126,11 +126,26 @@ npm run build:all && npm run pm2:start
 
 ---
 
+## Local Docker Infrastructure
+
+```bash
+cd infrastructure/docker && docker-compose up -d          # 기본 실행
+docker-compose --profile debug up -d                      # Redis GUI 포함
+```
+
+| Service | Port | 용도 |
+|---------|------|------|
+| PostgreSQL 16 | 5432 | 메인 DB (brider/brider_dev_password) |
+| Redis 7 | 6379 | Cache, Lock, Geo, BullMQ |
+| Redis Commander | 8081 | Redis GUI (debug profile) |
+
+---
+
 ## Environment Variables
 
 ```bash
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/brider
+DATABASE_URL=postgresql://brider:brider_dev_password@localhost:5432/brider
 
 # Redis (Cache, Lock, Geohash, BullMQ)
 REDIS_URL=redis://localhost:6379
