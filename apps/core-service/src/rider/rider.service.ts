@@ -2,13 +2,15 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rider, RiderStatus } from '@app/database';
-import { CreateRiderDto, UpdateRiderDto, UpdateRiderStatusDto } from '@app/common';
+import { CreateRiderDto, UpdateRiderDto, UpdateRiderStatusDto, RiderStatusService } from '@app/common';
+import { RiderStatus as RedisRiderStatus } from '@app/common/services/rider-status.service';
 
 @Injectable()
 export class RiderService {
   constructor(
     @InjectRepository(Rider)
     private riderRepository: Repository<Rider>,
+    private riderStatusService: RiderStatusService,
   ) {}
 
   async create(createRiderDto: CreateRiderDto): Promise<Rider> {
@@ -20,7 +22,15 @@ export class RiderService {
     }
 
     const rider = this.riderRepository.create(createRiderDto);
-    return this.riderRepository.save(rider);
+    const savedRider = await this.riderRepository.save(rider);
+
+    // Sync status to Redis
+    await this.riderStatusService.setStatus(
+      savedRider.id,
+      savedRider.status as RedisRiderStatus,
+    );
+
+    return savedRider;
   }
 
   async findAll(): Promise<Rider[]> {
@@ -52,7 +62,15 @@ export class RiderService {
   async updateStatus(id: string, updateStatusDto: UpdateRiderStatusDto): Promise<Rider> {
     const rider = await this.findOne(id);
     rider.status = updateStatusDto.status;
-    return this.riderRepository.save(rider);
+    const savedRider = await this.riderRepository.save(rider);
+
+    // Sync status to Redis
+    await this.riderStatusService.setStatus(
+      savedRider.id,
+      savedRider.status as RedisRiderStatus,
+    );
+
+    return savedRider;
   }
 
   async setAvailable(id: string): Promise<Rider> {

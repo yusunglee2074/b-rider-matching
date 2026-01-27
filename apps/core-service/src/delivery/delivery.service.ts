@@ -1,16 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Delivery, DeliveryStatus } from '@app/database';
 import { CreateDeliveryDto } from '@app/common';
 import { StoreService } from '../store/store.service';
+import { AutoDispatchService } from '../offer/auto-dispatch.service';
 
 @Injectable()
 export class DeliveryService {
+  private readonly logger = new Logger(DeliveryService.name);
+
   constructor(
     @InjectRepository(Delivery)
     private deliveryRepository: Repository<Delivery>,
     private storeService: StoreService,
+    @Inject(forwardRef(() => AutoDispatchService))
+    private autoDispatchService: AutoDispatchService,
   ) {}
 
   async create(createDeliveryDto: CreateDeliveryDto): Promise<Delivery> {
@@ -18,7 +23,21 @@ export class DeliveryService {
     await this.storeService.findOne(createDeliveryDto.storeId);
 
     const delivery = this.deliveryRepository.create(createDeliveryDto);
-    return this.deliveryRepository.save(delivery);
+    const savedDelivery = await this.deliveryRepository.save(delivery);
+
+    // Trigger auto-dispatch (non-blocking, errors don't affect delivery creation)
+    try {
+      const result = await this.autoDispatchService.dispatch(savedDelivery.id);
+      if (result.success) {
+        this.logger.log(`Auto-dispatch successful for delivery ${savedDelivery.id}`);
+      } else {
+        this.logger.warn(`Auto-dispatch failed for delivery ${savedDelivery.id}: ${result.error}`);
+      }
+    } catch (error) {
+      this.logger.error(`Auto-dispatch error for delivery ${savedDelivery.id}: ${error.message}`);
+    }
+
+    return savedDelivery;
   }
 
   async findAll(): Promise<Delivery[]> {

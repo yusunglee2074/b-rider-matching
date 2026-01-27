@@ -13,6 +13,7 @@ import { RiderService } from '../rider/rider.service';
 import { DeliveryService } from '../delivery/delivery.service';
 import { LocationGrpcClient } from '../clients/location.grpc-client';
 import { NotificationQueueProducer } from '../clients/notification.queue-producer';
+import { OfferQueueProducer } from '../clients/offer.queue-producer';
 
 const OFFER_EXPIRY_SECONDS = 10;
 
@@ -26,6 +27,7 @@ export class OfferService {
     private redisLockService: RedisLockService,
     private locationClient: LocationGrpcClient,
     private notificationProducer: NotificationQueueProducer,
+    private offerQueueProducer: OfferQueueProducer,
   ) {}
 
   async create(createOfferDto: CreateOfferDto): Promise<Offer> {
@@ -60,6 +62,14 @@ export class OfferService {
     });
 
     const savedOffer = await this.offerRepository.save(offer);
+
+    // Schedule timeout check
+    await this.offerQueueProducer.scheduleTimeoutCheck(
+      savedOffer.id,
+      deliveryId,
+      savedOffer.attemptCount || 1,
+      OFFER_EXPIRY_SECONDS * 1000,
+    );
 
     // Send notification to rider
     await this.notificationProducer.sendOfferCreatedNotification(

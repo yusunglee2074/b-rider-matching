@@ -1,6 +1,8 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
 
+const RIDER_STATUS_PREFIX = 'rider:status:';
+
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: Redis;
@@ -54,5 +56,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async geopos(key: string, member: string): Promise<[string, string] | null> {
     const result = await this.client.geopos(key, member);
     return result[0] as [string, string] | null;
+  }
+
+  async getRiderStatuses(riderIds: string[]): Promise<Map<string, string | null>> {
+    if (riderIds.length === 0) {
+      return new Map();
+    }
+
+    const keys = riderIds.map((id) => `${RIDER_STATUS_PREFIX}${id}`);
+    const statuses = await this.client.mget(...keys);
+
+    const result = new Map<string, string | null>();
+    riderIds.forEach((id, index) => {
+      result.set(id, statuses[index]);
+    });
+
+    return result;
   }
 }

@@ -47,6 +47,9 @@ export class Offer {
   @Column({ type: 'timestamp' })
   expiresAt: Date;
 
+  @Column({ type: 'int', default: 1 })
+  attemptCount: number;
+
   @Column({ type: 'timestamp', nullable: true })
   respondedAt: Date;
 
