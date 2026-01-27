@@ -30,6 +30,7 @@ export class OfferService {
     @InjectRepository(Offer)
     private offerRepository: Repository<Offer>,
     private riderService: RiderService,
+    @Inject(forwardRef(() => DeliveryService))
     private deliveryService: DeliveryService,
     private redisLockService: RedisLockService,
     private locationClient: LocationGrpcClient,

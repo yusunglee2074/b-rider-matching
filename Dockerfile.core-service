@@ -1,0 +1,33 @@
+# Core Service Dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production=false
+
+# Copy source
+COPY . .
+
+# Build
+RUN npm run build:core-service
+
+# Production stage
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy package files and install production deps only
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built files
+COPY --from=builder /app/dist/apps/core-service ./dist
+
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
+CMD ["node", "dist/main.js"]

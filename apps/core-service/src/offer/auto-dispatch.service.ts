@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { DeliveryService } from '../delivery/delivery.service';
 import { OfferService } from './offer.service';
 import { LocationGrpcClient } from '../clients/location.grpc-client';
@@ -11,7 +11,9 @@ export class AutoDispatchService {
   private readonly logger = new Logger(AutoDispatchService.name);
 
   constructor(
+    @Inject(forwardRef(() => DeliveryService))
     private readonly deliveryService: DeliveryService,
+    @Inject(forwardRef(() => OfferService))
     private readonly offerService: OfferService,
     private readonly locationClient: LocationGrpcClient,
   ) {}
