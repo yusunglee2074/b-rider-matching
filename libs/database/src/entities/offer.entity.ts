@@ -15,6 +15,7 @@ export enum OfferStatus {
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
   EXPIRED = 'EXPIRED',
+  CANCELLED_BY_ADMIN = 'CANCELLED_BY_ADMIN',
 }
 
 @Entity('offers')
