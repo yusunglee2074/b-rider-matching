@@ -8,40 +8,31 @@ export class SmsProcessor extends WorkerHost {
   private readonly logger = new Logger(SmsProcessor.name);
 
   async process(job: Job<NotificationJobData>): Promise<void> {
+    // SMS jobs use 'sms' job name (for future use)
     if (job.name !== 'sms') {
       return;
     }
 
-    const { riderId, type, payload } = job.data;
+    const { riderId, storeId, title, body, type } = job.data;
+    const targetId = riderId || storeId;
 
-    this.logger.log(`Processing SMS for rider ${riderId}`);
+    if (!targetId) {
+      this.logger.warn(`No target ID for SMS notification type ${type}`);
+      return;
+    }
 
-    const message = this.buildSmsMessage(type, payload);
+    this.logger.log(`Processing SMS: ${type} for ${targetId}`);
+
+    const message = `[B-Rider] ${body}`;
 
     // TODO: SMS Provider 실제 연동
-    await this.sendSms(riderId, message);
+    await this.sendSms(targetId, message);
 
-    this.logger.log(`SMS sent to rider ${riderId}`);
+    this.logger.log(`SMS sent: ${type} to ${targetId}`);
   }
 
-  private buildSmsMessage(
-    type: string,
-    payload: Record<string, any>,
-  ): string {
-    switch (type) {
-      case 'OFFER_ASSIGNED':
-        return `[B-Rider] ${payload.storeName}에서 새로운 배차 요청이 도착했습니다.`;
-      case 'OFFER_TIMEOUT':
-        return `[B-Rider] 배차 요청 응답 시간이 초과되었습니다.`;
-      case 'DELIVERY_COMPLETED':
-        return `[B-Rider] 배달이 완료되었습니다.`;
-      default:
-        return `[B-Rider] 새로운 알림이 있습니다.`;
-    }
-  }
-
-  private async sendSms(riderId: string, message: string): Promise<void> {
+  private async sendSms(targetId: string, message: string): Promise<void> {
     // Mock SMS 발송
-    this.logger.debug(`[Mock SMS] riderId: ${riderId}, message: ${message}`);
+    this.logger.debug(`[Mock SMS] targetId: ${targetId}, message: ${message}`);
   }
 }

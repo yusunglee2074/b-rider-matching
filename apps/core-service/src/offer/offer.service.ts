@@ -3,6 +3,9 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Inject,
+  forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,11 +17,15 @@ import { DeliveryService } from '../delivery/delivery.service';
 import { LocationGrpcClient } from '../clients/location.grpc-client';
 import { NotificationQueueProducer } from '../clients/notification.queue-producer';
 import { OfferQueueProducer } from '../clients/offer.queue-producer';
+import { AutoDispatchService } from './auto-dispatch.service';
 
 const OFFER_EXPIRY_SECONDS = 10;
+const MAX_DISPATCH_ATTEMPTS = 5;
 
 @Injectable()
 export class OfferService {
+  private readonly logger = new Logger(OfferService.name);
+
   constructor(
     @InjectRepository(Offer)
     private offerRepository: Repository<Offer>,
@@ -28,6 +35,8 @@ export class OfferService {
     private locationClient: LocationGrpcClient,
     private notificationProducer: NotificationQueueProducer,
     private offerQueueProducer: OfferQueueProducer,
+    @Inject(forwardRef(() => AutoDispatchService))
+    private autoDispatchService: AutoDispatchService,
   ) {}
 
   async create(createOfferDto: CreateOfferDto): Promise<Offer> {
@@ -149,11 +158,61 @@ export class OfferService {
           offer.delivery.storeId,
           offer.deliveryId,
         );
+
+        // Trigger re-dispatch to next rider
+        const savedOffer = await this.offerRepository.save(offer);
+        await this.triggerRedispatch(offer.deliveryId, offer.attemptCount || 1);
+        return savedOffer;
       }
 
       return this.offerRepository.save(offer);
     } finally {
       await lock.release();
+    }
+  }
+
+  private async triggerRedispatch(
+    deliveryId: string,
+    currentAttemptCount: number,
+  ): Promise<void> {
+    if (currentAttemptCount >= MAX_DISPATCH_ATTEMPTS) {
+      this.logger.warn(
+        `Delivery ${deliveryId} reached max dispatch attempts (${MAX_DISPATCH_ATTEMPTS})`,
+      );
+      return;
+    }
+
+    try {
+      const previousOffers = await this.offerRepository.find({
+        where: { deliveryId },
+        select: ['riderId'],
+      });
+      const excludeRiderIds = previousOffers.map((o) => o.riderId);
+
+      const result = await this.autoDispatchService.dispatchToNextRider(
+        deliveryId,
+        excludeRiderIds,
+      );
+
+      if (result.success && result.offerId) {
+        await this.offerRepository.update(result.offerId, {
+          attemptCount: currentAttemptCount + 1,
+        });
+
+        await this.offerQueueProducer.scheduleTimeoutCheck(
+          result.offerId,
+          deliveryId,
+          currentAttemptCount + 1,
+        );
+
+        this.logger.log(
+          `Re-dispatched delivery ${deliveryId} after rejection, attempt ${currentAttemptCount + 1}`,
+        );
+      } else {
+        this.logger.warn(`Failed to re-dispatch delivery ${deliveryId}: ${result.error}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error during re-dispatch for delivery ${deliveryId}: ${error.message}`);
     }
   }
 
