@@ -6,6 +6,7 @@ import { StoreModule } from './store/store.module';
 import { RiderModule } from './rider/rider.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { OfferModule } from './offer/offer.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { OfferModule } from './offer/offer.module';
     RiderModule,
     DeliveryModule,
     OfferModule,
+    AdminModule,
   ],
   controllers: [],
   providers: [RedisLockService],
