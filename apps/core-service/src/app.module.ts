@@ -7,6 +7,7 @@ import { RiderModule } from './rider/rider.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { OfferModule } from './offer/offer.module';
 import { AdminModule } from './admin/admin.module';
+import { DemoModule } from './demo/demo.module';
 import { UserContextMiddleware } from './common/user-context.middleware';
 
 @Module({
@@ -21,6 +22,7 @@ import { UserContextMiddleware } from './common/user-context.middleware';
     DeliveryModule,
     OfferModule,
     AdminModule,
+    DemoModule,
   ],
   controllers: [],
   providers: [RedisLockService],

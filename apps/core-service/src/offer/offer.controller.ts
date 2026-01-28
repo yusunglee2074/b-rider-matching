@@ -19,6 +19,11 @@ export class OfferController {
     return this.offerService.create(createOfferDto);
   }
 
+  @Post('manual')
+  createManual(@Body() createOfferDto: CreateOfferDto) {
+    return this.offerService.create(createOfferDto);
+  }
+
   @Get()
   findAll() {
     return this.offerService.findAll();

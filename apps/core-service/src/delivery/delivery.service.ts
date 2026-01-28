@@ -86,6 +86,19 @@ export class DeliveryService {
   }
 
   async setDelivered(id: string): Promise<Delivery> {
+    // Find the accepted offer to get the rider
+    const acceptedOffer = await this.offerRepository.findOne({
+      where: {
+        deliveryId: id,
+        status: OfferStatus.ACCEPTED,
+      },
+    });
+
+    // Set rider back to AVAILABLE
+    if (acceptedOffer) {
+      await this.riderService.setAvailable(acceptedOffer.riderId);
+    }
+
     return this.updateStatus(id, DeliveryStatus.DELIVERED);
   }
 
