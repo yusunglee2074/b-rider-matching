@@ -6,6 +6,7 @@ import { CreateDeliveryDto } from '@app/common';
 import { StoreService } from '../store/store.service';
 import { AutoDispatchService } from '../offer/auto-dispatch.service';
 import { RiderService } from '../rider/rider.service';
+import { LocationGrpcClient } from '../clients/location.grpc-client';
 
 @Injectable()
 export class DeliveryService {
@@ -21,6 +22,7 @@ export class DeliveryService {
     private autoDispatchService: AutoDispatchService,
     @Inject(forwardRef(() => RiderService))
     private riderService: RiderService,
+    private locationClient: LocationGrpcClient,
   ) {}
 
   async create(createDeliveryDto: CreateDeliveryDto): Promise<Delivery> {
@@ -86,6 +88,8 @@ export class DeliveryService {
   }
 
   async setDelivered(id: string): Promise<Delivery> {
+    const delivery = await this.findOne(id);
+
     // Find the accepted offer to get the rider
     const acceptedOffer = await this.offerRepository.findOne({
       where: {
@@ -94,9 +98,16 @@ export class DeliveryService {
       },
     });
 
-    // Set rider back to AVAILABLE
+    // Set rider back to AVAILABLE and update location to dropoff point
     if (acceptedOffer) {
       await this.riderService.setAvailable(acceptedOffer.riderId);
+
+      // Update rider location to dropoff coordinates
+      await this.locationClient.updateRiderLocation(
+        acceptedOffer.riderId,
+        Number(delivery.dropoffLatitude),
+        Number(delivery.dropoffLongitude),
+      );
     }
 
     return this.updateStatus(id, DeliveryStatus.DELIVERED);

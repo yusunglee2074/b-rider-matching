@@ -23,8 +23,19 @@ interface GetNearbyRidersResponse {
   riders: RiderLocation[];
 }
 
+interface UpdateRiderLocationRequest {
+  rider_id: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface UpdateRiderLocationResponse {
+  success: boolean;
+}
+
 interface LocationServiceGrpc {
   getNearbyRiders(request: GetNearbyRidersRequest): Observable<GetNearbyRidersResponse>;
+  updateRiderLocation(request: UpdateRiderLocationRequest): Observable<UpdateRiderLocationResponse>;
 }
 
 @Injectable()
@@ -83,6 +94,35 @@ export class LocationGrpcClient implements OnModuleInit {
     } catch (error) {
       this.logger.error(`gRPC call failed: ${error.message}`);
       return [];
+    }
+  }
+
+  async updateRiderLocation(
+    riderId: string,
+    latitude: number,
+    longitude: number,
+  ): Promise<boolean> {
+    try {
+      this.getClient();
+
+      const response = await firstValueFrom(
+        this.locationService.updateRiderLocation({
+          rider_id: riderId,
+          latitude,
+          longitude,
+        }).pipe(
+          timeout(5000),
+          catchError((error) => {
+            this.logger.warn(`Failed to update rider location: ${error.message}`);
+            return of({ success: false });
+          }),
+        ),
+      );
+
+      return response.success;
+    } catch (error) {
+      this.logger.error(`gRPC updateRiderLocation failed: ${error.message}`);
+      return false;
     }
   }
 }

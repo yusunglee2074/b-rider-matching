@@ -6,6 +6,7 @@ import { DeliveryService } from './delivery.service';
 import { StoreModule } from '../store/store.module';
 import { OfferModule } from '../offer/offer.module';
 import { RiderModule } from '../rider/rider.module';
+import { LocationGrpcClient } from '../clients/location.grpc-client';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { RiderModule } from '../rider/rider.module';
     forwardRef(() => RiderModule),
   ],
   controllers: [DeliveryController],
-  providers: [DeliveryService],
+  providers: [DeliveryService, LocationGrpcClient],
   exports: [DeliveryService],
 })
 export class DeliveryModule {}
