@@ -89,3 +89,12 @@ module "elasticache" {
   project_name          = var.project_name
   ecs_security_group_id = module.ecs.ecs_security_group_id
 }
+
+# SPA Module (Demo Web)
+module "spa" {
+  source = "./modules/spa"
+
+  project_name    = var.project_name
+  environment     = var.environment
+  api_domain_name = module.alb.alb_dns_name
+}
