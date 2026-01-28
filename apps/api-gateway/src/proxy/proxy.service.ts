@@ -14,6 +14,7 @@ import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
   private readonly coreServiceUrl: string;
+  private readonly locationServiceUrl: string;
 
   constructor(
     private readonly httpService: HttpService,
@@ -22,6 +23,17 @@ export class ProxyService {
     this.coreServiceUrl =
       this.configService.get<string>('CORE_SERVICE_URL') ||
       'http://localhost:3001';
+    this.locationServiceUrl =
+      this.configService.get<string>('LOCATION_SERVICE_URL') ||
+      'http://localhost:3003';
+  }
+
+  private getTargetUrl(path: string): string {
+    // Route /location requests to Location Service
+    if (path.startsWith('/location')) {
+      return this.locationServiceUrl;
+    }
+    return this.coreServiceUrl;
   }
 
   async forward(
@@ -32,7 +44,8 @@ export class ProxyService {
     headers?: Record<string, string>,
     query?: Record<string, string>,
   ): Promise<{ data: unknown; status: number; headers: Record<string, string> }> {
-    const url = `${this.coreServiceUrl}${path}`;
+    const targetUrl = this.getTargetUrl(path);
+    const url = `${targetUrl}${path}`;
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -78,7 +91,7 @@ export class ProxyService {
 
       if (error.code === 'ECONNREFUSED') {
         throw new HttpException(
-          'Core Service unavailable',
+          'Service unavailable',
           HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
