@@ -87,26 +87,7 @@ export const useAppStore = create<AppState>((set) => ({
   bottomPanelTab: 'architecture',
 
   // Data actions
-  setRiders: (riders) => set((state) => {
-    // Preserve local position and status data when updating riders from API
-    const localDataMap = new Map(
-      state.riders.map(r => [r.id, { latitude: r.latitude, longitude: r.longitude, status: r.status }])
-    );
-    const mergedRiders = riders.map(r => {
-      const existingData = localDataMap.get(r.id);
-      if (existingData) {
-        // Keep local position and status if they exist
-        return {
-          ...r,
-          latitude: existingData.latitude ?? r.latitude,
-          longitude: existingData.longitude ?? r.longitude,
-          status: existingData.status ?? r.status,
-        };
-      }
-      return r;
-    });
-    return { riders: mergedRiders };
-  }),
+  setRiders: (riders) => set({ riders }),
   setStores: (stores) => set({ stores }),
   setDeliveries: (deliveries) => set({ deliveries }),
   setOffers: (offers) => set({ offers }),

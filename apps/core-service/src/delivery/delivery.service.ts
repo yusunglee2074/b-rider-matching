@@ -32,17 +32,18 @@ export class DeliveryService {
     const delivery = this.deliveryRepository.create(createDeliveryDto);
     const savedDelivery = await this.deliveryRepository.save(delivery);
 
-    // Trigger auto-dispatch (non-blocking, errors don't affect delivery creation)
-    try {
-      const result = await this.autoDispatchService.dispatch(savedDelivery.id);
-      if (result.success) {
-        this.logger.log(`Auto-dispatch successful for delivery ${savedDelivery.id}`);
-      } else {
-        this.logger.warn(`Auto-dispatch failed for delivery ${savedDelivery.id}: ${result.error}`);
-      }
-    } catch (error) {
-      this.logger.error(`Auto-dispatch error for delivery ${savedDelivery.id}: ${error.message}`);
-    }
+    // Trigger auto-dispatch (fire-and-forget, non-blocking)
+    this.autoDispatchService.dispatch(savedDelivery.id)
+      .then((result) => {
+        if (result.success) {
+          this.logger.log(`Auto-dispatch successful for delivery ${savedDelivery.id}`);
+        } else {
+          this.logger.warn(`Auto-dispatch failed for delivery ${savedDelivery.id}: ${result.error}`);
+        }
+      })
+      .catch((error) => {
+        this.logger.error(`Auto-dispatch error for delivery ${savedDelivery.id}: ${error.message}`);
+      });
 
     return savedDelivery;
   }
